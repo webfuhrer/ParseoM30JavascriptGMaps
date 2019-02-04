@@ -1,0 +1,95 @@
+<html>
+<style>
+.capa_muestra_mapas
+{
+height: 200px;
+width: 200px;
+}
+</style>
+<head>
+	<script>
+	function pedirDatosM30()
+	{
+	var peticion=new XMLHttpRequest();
+	peticion.onreadystatechange=function()
+	{
+		if (this.readyState==4 && this.status==200)
+		{
+		var respuesta=this.responseText;
+		tratarXML(respuesta);
+		}
+	}
+	peticion.open("GET", "http://www.mc30.es/components/com_hotspots/datos/camaras.xml", true);
+	peticion.send();
+	
+	}
+	function tratarXML(texto_xml)
+	{
+	var parser = new DOMParser();
+	var objeto_xml = parser.parseFromString(texto_xml,"text/xml");
+	var lista_objetos_camara=objeto_xml.getElementsByTagName("Camara");//Array de elementos xml Camara
+	var lista_camaras=new Array();
+	for (i=0; i<lista_objetos_camara.length; i++)
+		{
+		var elemento_xml_camara=lista_objetos_camara[i];
+		var elemento_posicion=elemento_xml_camara.getElementsByTagName("Posicion")[0];
+		var elemento_latitud=elemento_posicion.getElementsByTagName("Latitud")[0];
+		var elemento_longitud=elemento_posicion.getElementsByTagName("Longitud")[0];
+		var valor_latitud=elemento_latitud.childNodes[0].nodeValue;
+		var valor_longitud=elemento_longitud.childNodes[0].nodeValue;
+		var valor_url=elemento_xml_camara.getElementsByTagName("URL")[0].childNodes[0].nodeValue;
+		var camara={latitud: valor_latitud, longitud: valor_longitud, url: valor_url};
+		lista_camaras.push(camara);
+		}
+		crearTabla(lista_camaras);
+		pintarMapas(lista_camaras);//Para llamar alas capas, tengo que ir desde 0 hasta lista_camaras.length
+									//Y además para poder centrar el mapa y poner el marker en la posción de la cámara
+	}
+	function pintarMapas(lista)
+	{
+		for (i=0; i<lista.length; i++)
+		{
+		var capa_mapa="mapa_"+i;
+		var latitud=lista[i].latitud*1;
+		var longitud= lista[i].longitud*1;
+		var posicion={lat:latitud, lng:longitud}
+		var mapa=new google.maps.Map(document.getElementById(capa_mapa),{center:posicion, zoom: 13,  mapTypeControl: false , 
+		streetViewControl: false,zoomControl: false} );
+		var marcador=new google.maps.Marker({position:posicion, map:mapa });
+		}
+	
+	}
+	function crearTabla(lista)
+	{
+	var objeto_tabla_html=document.createElement("table");
+	for(i=0; i<lista.length; i++)
+		{
+		var camara=lista[i];
+		var fila=document.createElement("tr");
+		var celda_mapa=document.createElement("td");
+		var capa_mapa=document.createElement("div");
+		capa_mapa.className="capa_muestra_mapas";
+		/*capa_mapa.style.width= "500px";
+		capa_mapa.style.height= "500px";*/
+		capa_mapa.id="mapa_"+i;
+		celda_mapa.appendChild(capa_mapa);
+		var celda_imagen=document.createElement("td");
+		//celda_imagen.innerHTML="<img src='http://"+camara.url+"'>";
+		var obj_imagen=document.createElement("img");
+		celda_imagen.appendChild(obj_imagen);
+		obj_imagen.src="http://"+camara.url;
+		fila.appendChild(celda_mapa);
+		fila.appendChild(celda_imagen);
+		objeto_tabla_html.appendChild(fila);
+		}
+		document.getElementById("contenido").appendChild(objeto_tabla_html);
+	}
+	</script>
+</head>
+<body>
+<button onclick="pedirDatosM30();">Pedir datos</button>
+<div id="contenido"></div>
+ <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA2nnTwxI_6v6FgZQ_HYALbkWsL3qhFjT4"
+    async defer></script>
+</body>
+</html>
